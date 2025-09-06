@@ -22,15 +22,14 @@ local Settings = {
 --// GUI
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 
--- Scale function
 local function ScaleUI(baseW, baseH)
     local w,h = Camera.ViewportSize.X, Camera.ViewportSize.Y
-    return UDim2.new(0, math.clamp(baseW*(w/1080), 220, 400), 0, math.clamp(baseH*(h/1920), 320, 600))
+    return UDim2.new(0, math.clamp(baseW*(w/1080), 220, 400), 0, math.clamp(baseH*(h/1920), 400, 600))
 end
 
 -- Main Frame
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = ScaleUI(300,500)
+MainFrame.Size = ScaleUI(300,550)
 MainFrame.Position = UDim2.new(0.5,0,0.5,0)
 MainFrame.AnchorPoint = Vector2.new(0.5,0.5)
 MainFrame.BackgroundColor3 = Color3.fromRGB(255,255,255)
@@ -118,13 +117,13 @@ end
 
 -- Create Buttons
 local startY = 60
-CreateToggleButton(MainFrame,startY,"🎯 AimLock","AimLockEnabled","ล็อคเป้าหมายศัตรูอัตโนมัติ")
-CreateToggleButton(MainFrame,startY+50,"👁️ ESP","ESPEnabled","แสดง highlight ศัตรูแม้เกิดใหม่")
-CreateToggleButton(MainFrame,startY+100,"🛡️ TeamCheck","TeamCheck","ไม่ล็อคเพื่อนร่วมทีม")
-CreateToggleButton(MainFrame,startY+150,"🧱 WallCheck","WallCheck","ล็อคเฉพาะศัตรูที่มองเห็น")
-CreateToggleButton(MainFrame,startY+200,"🧠 Prediction","PredictionEnabled","เปิด/ปิดการคาดตำแหน่งศัตรูอัตโนมัติ")
+CreateToggleButton(MainFrame,startY,"🎯 AimLock","AimLockEnabled","Auto lock target")
+CreateToggleButton(MainFrame,startY+50,"👁️ ESP","ESPEnabled","Show enemy highlight")
+CreateToggleButton(MainFrame,startY+100,"🛡️ TeamCheck","TeamCheck","Ignore teammates")
+CreateToggleButton(MainFrame,startY+150,"🧱 WallCheck","WallCheck","Lock only visible enemies")
+CreateToggleButton(MainFrame,startY+200,"🧠 Prediction","PredictionEnabled","Enable prediction")
 
--- FOV Slider
+-- Slider Function
 local function CreateSlider(parent, y, labelText, min, max, valueKey)
     local label = Instance.new("TextLabel", parent)
     label.Position = UDim2.new(0,20,0,y)
@@ -180,31 +179,43 @@ local ESPObjects = {}
 local ESPMaxDistance = 10000
 
 local function UpdateESP(player)
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        if not ESPObjects[player] then
-            local highlight = Instance.new("Highlight")
-            highlight.Adornee = player.Character
-            highlight.FillColor = player.Team==LocalPlayer.Team and Color3.fromRGB(0,150,255) or Color3.fromRGB(255,0,0)
-            highlight.OutlineColor = Color3.fromRGB(0,0,0)
-            highlight.FillTransparency = 0.5
-            highlight.Parent = workspace
-            ESPObjects[player] = highlight
-        else
-            local distance = (player.Character.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude
-            if distance <= ESPMaxDistance then
-                ESPObjects[player].Adornee = player.Character
-                ESPObjects[player].FillColor = player.Team==LocalPlayer.Team and Color3.fromRGB(0,150,255) or Color3.fromRGB(255,0,0)
-            else
-                ESPObjects[player].Adornee = nil
-            end
-        end
-    else
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
         if ESPObjects[player] then
             ESPObjects[player]:Destroy()
             ESPObjects[player] = nil
         end
+        return
+    end
+
+    if not ESPObjects[player] then
+        local highlight = Instance.new("Highlight")
+        highlight.Adornee = player.Character
+        highlight.FillColor = player.Team==LocalPlayer.Team and Color3.fromRGB(0,150,255) or Color3.fromRGB(255,0,0)
+        highlight.OutlineColor = Color3.fromRGB(0,0,0)
+        highlight.FillTransparency = 0.5
+        highlight.Parent = workspace
+        ESPObjects[player] = highlight
+    else
+        local highlight = ESPObjects[player]
+        highlight.Adornee = player.Character
+        highlight.FillColor = player.Team==LocalPlayer.Team and Color3.fromRGB(0,150,255) or Color3.fromRGB(255,0,0)
     end
 end
+
+-- Handle respawn
+for _,player in pairs(Players:GetPlayers()) do
+    player.CharacterAdded:Connect(function()
+        wait(0.1)
+        UpdateESP(player)
+    end)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        wait(0.1)
+        UpdateESP(player)
+    end)
+end)
 
 -- Prediction
 local function PredictPosition(targetPart)
@@ -215,11 +226,70 @@ local function PredictPosition(targetPart)
     return targetPos + velocity * travelTime * Settings.PredictionFactor
 end
 
--- AimLock Logic
+-- Smooth AimLock
 local AimLine = Drawing.new("Line")
 AimLine.Color = Color3.fromRGB(0,255,0)
 AimLine.Thickness = 2
 AimLine.Transparency = 0.8
 AimLine.Visible = true
 
-local function GetClosestTarget
+local function GetClosestTarget()
+    local closestDistance = Settings.FOVRadius
+    local closestPlayer = nil
+    for _,player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            if Settings.TeamCheck and player.Team==LocalPlayer.Team then continue end
+            local targetPart = player.Character.HumanoidRootPart
+            local predictedPos = Settings.PredictionEnabled and PredictPosition(targetPart) or targetPart.Position
+            local pos,_ = Camera:WorldToViewportPoint(predictedPos)
+            local distance = (Vector2.new(pos.X,pos.Y)-Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)).Magnitude
+            if distance < closestDistance then
+                if Settings.WallCheck then
+                    local ray = Ray.new(Camera.CFrame.Position,(predictedPos-Camera.CFrame.Position).Unit*500)
+                    local part,_ = Workspace:FindPartOnRay(ray,LocalPlayer.Character)
+                    if part and not part:IsDescendantOf(player.Character) then continue end
+                end
+                closestDistance = distance
+                closestPlayer = player
+            end
+        end
+    end
+    return closestPlayer
+end
+
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Color = Color3.fromRGB(0,255,0)
+FOVCircle.Thickness = 2
+FOVCircle.NumSides = 100
+FOVCircle.Radius = Settings.FOVRadius
+FOVCircle.Filled = false
+FOVCircle.Visible = true
+
+local function SmoothAim(targetPos, speed)
+    local camPos = Camera.CFrame.Position
+    local newCFrame = CFrame.new(camPos, targetPos)
+    Camera.CFrame = Camera.CFrame:Lerp(newCFrame, speed)
+end
+
+-- Render Loop
+RunService.RenderStepped:Connect(function()
+    for _,player in pairs(Players:GetPlayers()) do
+        if Settings.ESPEnabled then UpdateESP(player)
+        elseif ESPObjects[player] then ESPObjects[player]:Destroy(); ESPObjects[player]=nil end
+    end
+
+    if Settings.AimLockEnabled then
+        local target = GetClosestTarget()
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPos = Settings.PredictionEnabled and PredictPosition(target.Character.HumanoidRootPart) or target.Character.HumanoidRootPart.Position
+            SmoothAim(targetPos,0.15)
+            local screenPos,_ = Camera:WorldToViewportPoint(targetPos)
+            AimLine.From = Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)
+            AimLine.To = Vector2.new(screenPos.X,screenPos.Y)
+            AimLine.Visible = true
+        else AimLine.Visible=false end
+    else AimLine.Visible=false end
+
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)
+    FOVCircle.Radius = Settings.FOVRadius
+end)
