@@ -1,5 +1,30 @@
 -- Services
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- สร้าง ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CenterTitleGui"
+screenGui.Parent = PlayerGui
+
+-- สร้างข้อความ
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(0.5, 0, 0.1, 0) -- ครึ่งหน้าจอกว้าง, สูง 10%
+titleLabel.Position = UDim2.new(0.25, 0, 0.45, 0) -- กึ่งกลางหน้าจอ
+titleLabel.BackgroundTransparency = 1 -- ไม่มีพื้นหลัง
+titleLabel.Text = "บิน by keng the kiwi" -- ข้อความ
+titleLabel.TextScaled = true -- ขยายตัวอักษรให้เต็มพื้นที่
+titleLabel.TextColor3 = Color3.new(1, 1, 1) -- สีขาว
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.Parent = screenGui
+
+-- หายไปหลัง 3 วินาที
+task.delay(3, function()
+    titleLabel:Destroy() -- ลบข้อความ
+end)
+-- Services
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
