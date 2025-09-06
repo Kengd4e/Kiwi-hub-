@@ -19,21 +19,24 @@ local Settings = {
 --// GUI
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 
--- Responsive function
-local function ScaleUI(baseSize)
-    local screenWidth = Camera.ViewportSize.X
-    local screenHeight = Camera.ViewportSize.Y
-    return UDim2.new(0, baseSize.X * (screenWidth/1080), 0, baseSize.Y * (screenHeight/1920))
+-- Responsive function (min/max)
+local function ScaleUI(baseWidth, baseHeight)
+    local screenW, screenH = Camera.ViewportSize.X, Camera.ViewportSize.Y
+    local scaleW = math.clamp(baseWidth * (screenW/1080), 220, 400)
+    local scaleH = math.clamp(baseHeight * (screenH/1920), 320, 600)
+    return UDim2.new(0, scaleW, 0, scaleH)
 end
 
 -- Main Frame (คลีนแบบ Arceus X)
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = ScaleUI(Vector2.new(240, 360))
+MainFrame.Size = ScaleUI(300, 400)
 MainFrame.Position = UDim2.new(0.5,0,0.5,0)
 MainFrame.AnchorPoint = Vector2.new(0.5,0.5)
 MainFrame.BackgroundColor3 = Color3.fromRGB(255,255,255)
-MainFrame.BackgroundTransparency = 0.1
+MainFrame.BackgroundTransparency = 0.05
 MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
 
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(0,16)
@@ -69,7 +72,7 @@ end)
 
 -- Toggle UI Button (แยก)
 local ToggleUIButton = Instance.new("TextButton", ScreenGui)
-ToggleUIButton.Size = ScaleUI(Vector2.new(50,50))
+ToggleUIButton.Size = UDim2.new(0,50,0,50)
 ToggleUIButton.Position = UDim2.new(0,10,0,10)
 ToggleUIButton.Text = "🎮"
 ToggleUIButton.BackgroundColor3 = Color3.fromRGB(255,255,255)
@@ -83,7 +86,7 @@ end)
 
 -- Tooltip
 local Tooltip = Instance.new("TextLabel", ScreenGui)
-Tooltip.Size = ScaleUI(Vector2.new(180,25))
+Tooltip.Size = UDim2.new(0, 180, 0, 25)
 Tooltip.BackgroundColor3 = Color3.fromRGB(0,0,0)
 Tooltip.BackgroundTransparency = 0.5
 Tooltip.TextColor3 = Color3.fromRGB(255,255,255)
@@ -96,7 +99,7 @@ Tooltip.Font = Enum.Font.Gotham
 -- ฟังก์ชันสร้าง toggle button พร้อม tooltip
 local function CreateToggleButton(parent, yPos, text, settingKey, tooltipText)
     local btn = Instance.new("TextButton", parent)
-    btn.Size = ScaleUI(Vector2.new(200,30))
+    btn.Size = UDim2.new(0, parent.AbsoluteSize.X - 40, 0, 30)
     btn.Position = UDim2.new(0,20,0,yPos)
     btn.BackgroundColor3 = Settings[settingKey] and Color3.fromRGB(0,200,0) or Color3.fromRGB(200,0,0)
     btn.Text = text .. ": " .. (Settings[settingKey] and "ON" or "OFF")
@@ -122,15 +125,15 @@ local function CreateToggleButton(parent, yPos, text, settingKey, tooltipText)
 end
 
 -- สร้างปุ่มทั้งหมด
-local AimLockButton = CreateToggleButton(MainFrame, 60, "😈 AimLock", "AimLockEnabled", "ล็อคเป้าหมายศัตรูอัตโนมัติ")
-local ESPButton = CreateToggleButton(MainFrame, 110, "🙉 ESP", "ESPEnabled", "แสดง highlight ศัตรูแม้เกิดใหม่")
-local TeamButton = CreateToggleButton(MainFrame, 160, "👥 TeamCheck", "TeamCheck", "ไม่ล็อคเพื่อนร่วมทีม")
+local AimLockButton = CreateToggleButton(MainFrame, 60, "🎯 AimLock", "AimLockEnabled", "ล็อคเป้าหมายศัตรูอัตโนมัติ")
+local ESPButton = CreateToggleButton(MainFrame, 110, "👁️ ESP", "ESPEnabled", "แสดง highlight ศัตรูแม้เกิดใหม่")
+local TeamButton = CreateToggleButton(MainFrame, 160, "🛡️ TeamCheck", "TeamCheck", "ไม่ล็อคเพื่อนร่วมทีม")
 local WallButton = CreateToggleButton(MainFrame, 210, "🧱 WallCheck", "WallCheck", "ล็อคเฉพาะศัตรูที่มองเห็น")
 
 -- FOV Slider
 local FOVLabel = Instance.new("TextLabel", MainFrame)
 FOVLabel.Position = UDim2.new(0,20,0,260)
-FOVLabel.Size = ScaleUI(Vector2.new(200,20))
+FOVLabel.Size = UDim2.new(0,MainFrame.AbsoluteSize.X-40,0,20)
 FOVLabel.Text = "FOV: " .. Settings.FOVRadius
 FOVLabel.BackgroundTransparency = 1
 FOVLabel.TextColor3 = Color3.fromRGB(0,0,0)
@@ -139,7 +142,7 @@ FOVLabel.Font = Enum.Font.Gotham
 
 local FOVSlider = Instance.new("TextButton", MainFrame)
 FOVSlider.Position = UDim2.new(0,20,0,285)
-FOVSlider.Size = ScaleUI(Vector2.new(200,20))
+FOVSlider.Size = UDim2.new(0,MainFrame.AbsoluteSize.X-40,0,20)
 FOVSlider.Text = "Slide →"
 FOVSlider.BackgroundColor3 = Color3.fromRGB(180,180,180)
 local sliderCorner = Instance.new("UICorner", FOVSlider)
