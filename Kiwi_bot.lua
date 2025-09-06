@@ -49,7 +49,7 @@ HeaderCorner.CornerRadius = UDim.new(0,16)
 local HeaderLabel = Instance.new("TextLabel", Header)
 HeaderLabel.Size = UDim2.new(1,0,1,0)
 HeaderLabel.BackgroundTransparency = 1
-HeaderLabel.Text = "🎮 Arceus X UI"
+HeaderLabel.Text = "🥝 Arceus X UI"
 HeaderLabel.TextColor3 = Color3.fromRGB(0,0,0)
 HeaderLabel.Font = Enum.Font.GothamBold
 HeaderLabel.TextSize = 18
@@ -71,7 +71,7 @@ end)
 local ToggleUIButton = Instance.new("TextButton", ScreenGui)
 ToggleUIButton.Size = UDim2.new(0,50,0,50)
 ToggleUIButton.Position = UDim2.new(0,10,0,10)
-ToggleUIButton.Text = "🎮"
+ToggleUIButton.Text = "🥝"
 ToggleUIButton.BackgroundColor3 = Color3.fromRGB(255,255,255)
 local toggleCorner = Instance.new("UICorner", ToggleUIButton)
 toggleCorner.CornerRadius = UDim.new(0,12)
